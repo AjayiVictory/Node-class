@@ -119,7 +119,7 @@ const postSignin = (req, res) => {
                     id: foundCustomers._id,
                     email: foundCustomers.email,
                     firstName: foundCustomers.firstName,
-                    token: token
+                    lastName: foundCustomers.lastName
                 }
             })
 
