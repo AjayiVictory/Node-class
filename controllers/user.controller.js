@@ -109,12 +109,19 @@ const postSignin = (req, res) => {
             }
 
 
-            // Success
-            console.log("Login Successful for", foundCustomers.email);
-
-
+            
             res.redirect("/user/dashboard");
 
+            // Success
+            return res.json({
+                message: "Login Successful",
+                user: {
+                    id: foundCustomers._id,
+                    email: foundCustomers.email,
+                    firstName: foundCustomers.firstName,
+                    token: token
+                }
+            })
 
 
             
