@@ -2,6 +2,11 @@ const Customer = require("../models/user.model");
 const ejs = require('ejs')
 const bcrypt = require('bcryptjs')
 const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+dotenv.config();
+const jwt = require('jsonwebtoken');
+
+const JWT_Secret = process.env.jwtSecret;
 
 
 const getSignup = (req, res) => {
@@ -10,10 +15,6 @@ const getSignup = (req, res) => {
 
 const getSignin = (req, res) => {
     res.render("signin");
-}
-
-const getDashboard = (req, res) => {
-    res.render("dashboard");
 }
 
 const postSignup = (req, res) => {
@@ -103,6 +104,7 @@ const postSignin = (req, res) => {
             // Compare provided password with hashed one
             const isMatch = bcrypt.compareSync(password, foundCustomers.password);
 
+
             if (!isMatch) {
                 console.log("Invalid Password");
                 return res.status(400).json({ message: "Invalid email or password" });
@@ -111,15 +113,16 @@ const postSignin = (req, res) => {
 
 
             // res.redirect("/user/dashboard");
+            const token = jwt.sign({ email: req.body.email }, JWT_Secret, { expiresIn: '1h' });
+            console.log("Generated Token:", token);
 
-            // Success
             return res.json({
                 message: "Login Successful",
                 user: {
                     id: foundCustomers._id,
                     email: foundCustomers.email,
                     firstName: foundCustomers.firstName,
-                    lastName: foundCustomers.lastName
+                    token: token
                 }
             })
 
@@ -131,6 +134,33 @@ const postSignin = (req, res) => {
             res.status(500).send("Internal server error");
         });
 }
+
+const getDashboard = (req, res) => {
+    let token = req.headers.authorization.split(" ")[1]; // Assuming token is sent as "Bearer <token>"
+    
+    jwt.verify(token, JWT_Secret, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: "Invalid or expired token" });
+        } else {
+            console.log("Decoded token data:", decoded);
+            let userEmail = decoded.email;
+            
+            Customer.findOne({ email: userEmail })
+                .then((user) => {
+                    if (!user) {
+                        return res.status(404).json({ message: "User not found" });
+                    }
+                    console.log("User found:", user);
+                    res.json({ message: "Dashboard accessed successfully", user: { email: user.email, firstName: user.firstName } });
+                })
+                .catch((err) => {
+                    console.error("Error fetching user:", err);
+                    res.status(500).json({ message: "Internal server error" });
+                });
+        }
+    });
+}
+
 
 const getAllUsers = (req, res) => {
     Customer.find()
